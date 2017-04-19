@@ -1,5 +1,8 @@
 # KaMoso
 
+The KaMoso multi-agent simulation framework is work in progress.
+
+Contact: [http://www.ims.uni-stuttgart.de/institut/mitarbeiter/durandl/]
 
 ## Dependencies
 ### JAMA : A Java Matrix Package (Version 1.0.3)
