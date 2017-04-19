@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+
+	<Properties>
+		<Property name="log-path">logs</Property>
+	</Properties>
+
+	<Appenders>
+		<!-- <File name="Datei" fileName="${log-path}/phonology2014.log" append="false"> -->
+		<RollingFile name="Datei" fileName="${log-path}/populationModel.log"
+			filePattern="${log-path}/phonology2014-%d{yyyy-MM-dd}.log">
+			<PatternLayout pattern="%d %-5p [%C{2}] %m%n" />
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1"
+					modulate="true" />
+			</Policies>
+		</RollingFile>
+		<Console name="STDOUT" target="SYSTEM_OUT">
+			<!-- <PatternLayout pattern="%d %-5p [%t] %C{2} (%F:%L) - %m%n" /> -->
+			<PatternLayout pattern="%d %-5p [%C{2}] %m%n" />
+		</Console>
+	</Appenders>
+	<Loggers>
+		<Logger name="sfb732.kamoso" level="info"></Logger>
+		<Logger name="sfb732.kamoso.net" level="info"></Logger>
+		<Logger name="sfb732.kamoso.mem" level="info"></Logger>
+		<Logger name="sfb732.kamoso.pop" level="info"></Logger>
+		<Root level="info">
+			<AppenderRef ref="STDOUT" />
+			<AppenderRef ref="Datei" />
+		</Root>
+	</Loggers>
+</Configuration>

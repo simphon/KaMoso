@@ -1,0 +1,3 @@
+type,speaker_status,speaker_gender,closeness,phon_0,phon_1,phon_2,phon_3,phon_4
+A,0.25,f,1,-39,-39,25,83,38
+B,1,f,1,36,35,75,-61,59

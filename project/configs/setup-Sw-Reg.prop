@@ -1,0 +1,116 @@
+# KaMoso configuration file
+# Daniel Duran,
+# Institut für Maschinelle Sprachverarbeitung, Universität Stuttgart, SFB 732 (A2)
+# ==================================================================================
+
+# seed for the random number generator
+# if not set, a seed will be generated and written to the output configuration log
+random.seed=
+
+
+# ==================================================================================
+# Input/output parameters
+# ==================================================================================
+
+out.prefix=sw-reg_
+
+out.dump.agents.interval = 250
+out.dump.agents.first    = true
+out.dump.agents.last     = true
+
+out.dump.lexicon.interval = 250
+out.dump.lexicon.first    = true
+out.dump.lexicon.last     = true
+
+# ==================================================================================
+# Network parameters
+# ==================================================================================
+
+# network file
+# > if not specified, a new network will be generated according to the
+# specifications below
+net.file = data/edges-swTorus-40x10.csv
+
+# network type
+# > if a file is specified, the network type is assigned to the network which is
+# imported from the file (without verification)
+# > if no file is specified, a new network of this type is generated
+# > possible types:
+# undefined (only when imported from file),
+# regTorus, swTorus, parTorus, parSW, random, full
+net.type =swTorus
+
+# number of grid columns
+net.cols =
+
+# number of grid rows
+net.rows =
+
+# number of parishes (if applicable)
+net.pars =
+
+# network probability parameter (if applicable)
+net.prob =
+
+# maximum number of repeated attempts to initialize small-world network
+net.sw.maxtry=3
+
+
+
+# ==================================================================================
+# Exemplar and Memory parameters
+# ==================================================================================
+
+# exemplar prototype CSV-file:
+x.proto.file = data/exemplar_prototypes.csv
+
+# number of dimensions of phonetic feature vectors:
+x.phon.dim=5
+
+# phonetic similarity weights:
+# alpha: phonetic similarity weight
+# beta:  social status weight
+# gamma: social closeness weight
+x.alpha = 1.0
+x.beta  = 1.0
+x.gamma = 1.0
+
+# threshold for similarity/activation computations:
+# Euclidean distances higher than this value will be assigned the default
+# activation
+x.delta.th=15.0
+
+# minimum similarity below which percepts will not be added to lexicon:
+x.min.sim = 0.0000005
+
+# noise factor added in production
+x.noise.factor=2.0
+
+# maximum noise allowed to be added in production
+x.noise.max=20.0
+
+# number of exemplars to be produced in one utterance
+x.utterance=5
+
+# ==================================================================================
+# Social parameters
+# ==================================================================================
+
+# agents CSV-file:
+soc.file = data/agents400.csv
+
+# social status distribution:
+soc.status.min=0.01
+soc.status.max=0.25
+soc.status.hyp=1.0
+
+# probability of female new born agents
+soc.female.prob=0.5
+
+soc.interaction=regular
+
+# number of teachers: number of speakers for each listener
+soc.teachers=10
+
+soc.max.life=5
+
