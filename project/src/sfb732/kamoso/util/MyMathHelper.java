@@ -126,13 +126,13 @@ public class MyMathHelper {
 
 
 	/**
-	 * Get next random number from a normal distribution.
-	 * @param mean
-	 * @param sd
-	 * @return
+	 * Get next pseudo-random number from a normal distribution.
+	 * @param mean -- desired mean
+	 * @param sd   -- desired standard deviation
+	 * @return a pseudo-random number.
 	 */
 	public static double randomGauss(double mean, double sd) {
-		return (RAND.nextGaussian() + mean) * sd;
+		return RAND.nextGaussian() * sd + mean;
 	}
 
 
