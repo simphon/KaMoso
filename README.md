@@ -1,6 +1,6 @@
 # KaMoso
 
-The KaMoso multi-agent simulation framework is work in progress.
+The KaMoso multi-agent simulation framework is work in progress. Feel free to send any comments or suggestions to Daniel Duran.
 
 Contact: [http://www.ims.uni-stuttgart.de/institut/mitarbeiter/durandl/]
 
