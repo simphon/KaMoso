@@ -37,9 +37,14 @@ public class AdjacencyMatrix {
 	/** distance matrix (derived from a) */
 	protected int[][] d;
 
+	/** inverse distance matrix (derived from d) */
+	private double[][] invd;
+
 	private int maxDist;
 
 	private double meanDist;
+
+	private int modCount = Integer.MIN_VALUE;
 
 
 	public AdjacencyMatrix(int[][] a)

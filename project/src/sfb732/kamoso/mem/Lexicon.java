@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.Arrays;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,11 +31,28 @@ public class Lexicon implements Iterable<Exemplar> {
 	private static final Logger LOG = LogManager.getLogger(Lexicon.class.getCanonicalName());
 
 
+
+
+	public enum Similarity {
+		/** global lexicon similarity taking into account all exemplars */
+		global,
+
+		/** neighbourhood lexicon similarity taking into account only exemplars
+		 * within the specified epsilon radius around a stimulus 
+		 */
+		epsilon
+	}
+
+
+
+
+
 	// ===================================================================
 	//                                                    CSV FILE COLUMNS
 	// ===================================================================
 
-	public static final int CSV_NUM_COLS      = 9;// this depends on the number of phonetic dimensions
+	/** number of CSV columns (without phonetic dimensions) */
+	public static final int CSV_MIN_COLS      = 4;
 
 	public static final int CSV_COL_TYPE      = 0;
 	public static final int CSV_COL_S_STATUS  = 1;
@@ -104,6 +120,7 @@ public class Lexicon implements Iterable<Exemplar> {
 	 */
 	public static Exemplar[] readCSV(Configuration conf, File inFile, int capacity)
 	{
+		int csv_cols = conf.getExemplarPhonDim() + CSV_MIN_COLS;
 
 		Exemplar[] lex = new Exemplar[capacity];
 
@@ -128,8 +145,8 @@ public class Lexicon implements Iterable<Exemplar> {
 		for(int i=1; i<lines.length; i++)
 		{
 			String[] fields =  komma.split(lines[i]);
-			if(fields.length!=CSV_NUM_COLS) {
-				String msg = String.format("Invalid CSV file. Expecting %d columns, found %d", CSV_NUM_COLS, fields.length);
+			if(fields.length!=csv_cols) {
+				String msg = String.format("Invalid CSV file. Expecting %d columns, found %d", csv_cols, fields.length);
 				LOG.error(msg);
 				throw new RuntimeException(msg);
 			}
@@ -207,6 +224,10 @@ public class Lexicon implements Iterable<Exemplar> {
 
 	private final Configuration conf;
 
+	private final Perception perception;
+	private final Similarity simType;
+	private final double epsilon;
+
 	private final double MIN_SIM;
 	private final double thDELTA;
 	private final double thACTIVATION;
@@ -233,6 +254,13 @@ public class Lexicon implements Iterable<Exemplar> {
 
 
 
+	/**
+	 * Constructor.
+	 * The capacity of this lexicon will be equal to the length of the provided
+	 * array.
+	 * @param conf -- the current configuration
+	 * @param exemplars -- the lexicon contents
+	 */
 	public Lexicon(Configuration conf, Exemplar[] exemplars)
 	{
 		this.conf         = conf;
@@ -254,6 +282,27 @@ public class Lexicon implements Iterable<Exemplar> {
 				this.size++;
 			}
 		}
+
+		Perception.Type pt = conf.getPerceptionType();
+		switch (pt) {
+		case magnet:
+			this.perception = new PerceptionMagnet(conf, this, this.MIN_SIM);
+			break;
+
+		case linear:
+			this.perception = new PerceptionLinear(conf, null, 0);
+			break;
+
+		default:
+			throw new RuntimeException("Unsupported type of perception: " + pt.toString());
+		}
+
+		this.simType = conf.getLexiconSimilarityType();
+		if(this.simType==Similarity.epsilon){
+			this.epsilon = conf.getLexiconSimilarityEpsilon();
+		} else {
+			this.epsilon = Double.NaN;
+		}
 	}
 
 
@@ -271,125 +320,67 @@ public class Lexicon implements Iterable<Exemplar> {
 	//                                                          PERCEPTION
 	// ===================================================================
 
-
-
-	// [Wedel&VanVolkinburg:10] ``[...] the perceptual magnet effect is
-	// modeled here. To model this effect, each sound in an incoming
-	// percept is biased slightly toward previously stored sounds in
-	// relation to their distance and frequency [...]''
-	//
-	// [Wedel2006:265] ``Mimicking the perceptual magnet effect as
-	// modeled by Guenther and Gjaja (1996), cross-category blending
-	// proceeds by warping of percepts towards distributional maxima in
-	// the entire distribution of previously perceived segments. This is
-	// done by calculating a ‘population vector’ [...] over the current
-	// activations of all segment exemplars relative to the current
-	// percept, and averaging the percept with that vector.''
-	//
 	/**
-	 * Get percept for a given stimulus with an applied perceptual magnet effect.
-	 * The phonetic features of the stimulus are changed according to the contents
-	 * of this lexicon and the implemented auditory principles.
-	 * The social closeness features of the percept is updated according to the
-	 * specified value.
+	 * Get percept for a given stimulus.
 	 * @param stimulus
 	 * @param socialCloseness
 	 * @return a new {@link Exemplar} instance
 	 */
-	public Exemplar getPerceptPM(Exemplar stimulus, double socialCloseness)
+	public Exemplar getPercept(Exemplar stimulus, double socialCloseness)
 	{
-		double[] phon;
-
-		Exemplar.Type t = stimulus.getType();
-
-		if(this.size > 0)
-		{
-			this.computeCentroid();
-
-			double simA = this.getSimilarity(stimulus, Type.A);
-			double simB = this.getSimilarity(stimulus, Type.B);
-
-
-			if(simA>simB) {
-				if(simA<MIN_SIM){
-					if(LOG.isTraceEnabled())
-						LOG.trace(String.format("Similarity A too low: %.6f < %.6f. T=%s", simA, MIN_SIM, t.toString()));
-					t = Type.undefined;
-					phon = new double[stimulus.getPhoneticFeatureDims()];
-					System.arraycopy(stimulus.phonFeatures, 0, phon, 0, phon.length);
-				} else {
-					phon = MyMathHelper.getWeightedMean(centroidA, stimulus.phonFeatures, simA, (1.0-simA));
-				}
-			} else {
-				if(simB<MIN_SIM) {
-					if(LOG.isTraceEnabled())
-						LOG.trace(String.format("Similarity B too low: %.6f < %.6f. T=%s", simA, MIN_SIM, t.toString()));
-					t = Type.undefined;
-					phon = new double[stimulus.getPhoneticFeatureDims()];
-					System.arraycopy(stimulus.phonFeatures, 0, phon, 0, phon.length);
-				} else {
-					phon = MyMathHelper.getWeightedMean(centroidB, stimulus.phonFeatures, simB, (1.0-simB));
-				}
-			}
-
-			if(LOG.isTraceEnabled()){
-				LOG.trace(String.format(">   stimulus=%s", Arrays.toString(stimulus.phonFeatures)));
-				LOG.trace(String.format("- centroid A=%s", Arrays.toString(this.centroidA)));
-				LOG.trace(String.format("- centroid B=%s", Arrays.toString(this.centroidB)));
-				LOG.trace(String.format("-    percept=%s", Arrays.toString(phon)));
-			}
-		} else {
-			// this is a special case for the very first perceived exemplar
-			phon = new double[stimulus.getPhoneticFeatureDims()];
-			System.arraycopy(stimulus.phonFeatures, 0, phon, 0, phon.length);
-		}
-
-		//TODO assign type according to similarities (?)
-
-		Exemplar percept = new Exemplar(t, stimulus.getSpeakerStatus(),
-				stimulus.getSpeakerGender(), socialCloseness, phon,
-				conf.getSocialSchores(stimulus.getSpeakerStatus(), socialCloseness) );
-
-		return percept;
+		return this.perception.getPercept(stimulus, socialCloseness);
 	}
-
 
 
 	/**
-	 * Get global similarity of the given stimulus to this exemplar collection.
+	 * Get lexicon similarity of the given stimulus to exemplars of the
+	 * specified type. This uses the similarity function specified by the
+	 * current configuration.
 	 * @param stimulus
-	 * @return
+	 * @param type
+	 * @return the similarity between 0 and 1
 	 */
-	public double getGlobalSimilarity(Exemplar stimulus)
+	public double getSimilarity(Exemplar stimulus, Exemplar.Type type)
 	{
-		// compute global similarity to exemplar set
-		double sim = 0;
-		for(int i=0; i<this.exemplars.length; i++)
-		{
-			if(null==this.exemplars[i]){
-				continue;
-			}
-			double d = MyMathHelper.getEuclideanDistance(stimulus.phonFeatures, this.exemplars[i].phonFeatures);
-			if( d > thDELTA) {
-				sim += thACTIVATION;
-			} else {
-				sim += Math.exp(-d);
-			}
-		}
-		sim = sim / (double)this.size;
+		double sim;
 
+		switch (this.simType) {
+		case global:
+			sim = this.getSimilarityG(stimulus, type);
+			break;
+
+		case epsilon:
+			sim = this.getSimilarityN(stimulus, type, epsilon);
+			break;
+
+		default:
+			sim = Double.NaN;
+			break;
+		}
 		return sim;
 	}
+
 
 
 	/**
 	 * Get similarity of the given stimulus to exemplars of the specified type
 	 * in this exemplar collection.
+	 * This implements a <i>"global"</i> similarity.
+	 * <p>
+	 * The total similarity <code>sim_T</code> of a stimulus to a category
+	 * <code>T</code> is computed according to the following formula:<br/> 
+	 * <code> s_T(x) =  IF d <= th THEN e ^ (-d) ELSE e ^ -th</code><br/>
+	 * <code> sim_T = SUM {x in T} s_T(x)</code><br/>
+	 * where <code>th</code> is the distance threshold as defined in the current
+	 * configuration;
+	 * <code>d</code> is the Euclidean distance between the stimulus and
+	 * an exemplar <code>x</code>.
+	 * 
 	 * @param stimulus
 	 * @param type
-	 * @return
+	 * @return the similarity between 0 and 1
 	 */
-	public double getSimilarity(Exemplar stimulus, Exemplar.Type type)
+	public double getSimilarityG(Exemplar stimulus, Exemplar.Type type)
 	{
 		// compute global similarity to exemplar set
 		double sim = 0;
@@ -415,9 +406,92 @@ public class Lexicon implements Iterable<Exemplar> {
 	}
 
 
+
+
+
+	/**
+	 * Compute similarity based on number of exemplars within the specified
+	 * epsilon radius around the given stimulus.
+	 * @param stimulus
+	 * @param type
+	 * @param epsilon
+	 * @return
+	 */
+	public double getSimilarityN(Exemplar stimulus, Exemplar.Type type, double epsilon)
+	{
+		double sim = 0;
+
+		// pre-compute lower and upper bound in each phonetic dimension
+		double[] lower = new double[DIM];
+		double[] upper = new double[DIM];
+		for(int dx=0; dx<DIM; dx++) {
+			double feature = stimulus.getPhoneticFeature(dx);
+			lower[dx] = feature - epsilon;
+			upper[dx] = feature + epsilon;
+		}
+
+		// compute NeighbA and NeighbB, the number of exemplars within the
+		// epsilon neighborhood of the stimulus which belong to category A and B
+		int nA = 0;
+		int nB = 0;
+
+		for(int i=0; i<this.exemplars.length; i++)
+		{
+			Exemplar e = this.exemplars[i];
+			if(null==e){
+				continue;
+			}
+			// check if e is within epsilon-neighborhood
+			boolean skip = false;
+			for(int dx=0; dx<DIM; dx++) {
+				double feature = stimulus.getPhoneticFeature(dx);
+				if(feature < lower[dx]){
+					skip=true;
+					break;
+				}
+				if(feature > upper[dx]){
+					skip=true;
+					break;
+				}
+			}
+			if(skip) {
+				continue;
+			}
+			double d = e.getDistance(stimulus);
+			if(d <= epsilon) {
+				if(e.type==Type.A) {
+					nA++;
+				} else if(e.type==Type.B) {
+					nB++;
+				} else {
+					LOG.warn("Exemplar with undefinded category found in lexicon!");
+				}
+			}
+
+		}
+
+		double sum = (double)(nA + nB);
+
+		if(sum>0.0) {
+			if(type==Type.A) {
+				sim = nA / sum;
+			} else if(type==Type.B) {
+				sim = nB / sum;
+			} else {
+				LOG.error("Requested similarity for unknown exemplar type. Returnung 0.");
+			}
+		}
+
+		return sim;
+	}
+
+
 	// ===================================================================
 	// GENERAL ACCESS
 	// ===================================================================
+
+
+
 
 
 	/**
@@ -655,6 +729,9 @@ public class Lexicon implements Iterable<Exemplar> {
 					}
 				}
 				writer.flush();
+			}
+			if(LOG.isInfoEnabled()) {
+				LOG.info(String.format("Written lexicon to file %s", outFile.getAbsolutePath()));
 			}
 
 		} catch (IOException e) {

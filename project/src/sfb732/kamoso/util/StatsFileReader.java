@@ -3,8 +3,12 @@ package sfb732.kamoso.util;
 import java.io.File;
 import java.util.ArrayList;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class StatsFileReader {
+	
+	private static final Logger LOG = LogManager.getLogger(StatsFileReader.class.getCanonicalName());
 
 
 

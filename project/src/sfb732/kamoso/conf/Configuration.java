@@ -20,11 +20,13 @@ import org.apache.logging.log4j.Logger;
 
 import sfb732.kamoso.mem.Exemplar;
 import sfb732.kamoso.mem.ExemplarTools;
+import sfb732.kamoso.mem.Lexicon;
+import sfb732.kamoso.mem.Perception;
 import sfb732.kamoso.net.NetworkType;
 import sfb732.kamoso.pop.Agent;
+import sfb732.kamoso.pop.Agent.Gender;
 import sfb732.kamoso.pop.AgentTools;
 import sfb732.kamoso.pop.Interaction;
-import sfb732.kamoso.pop.Agent.Gender;
 
 
 /**
@@ -156,6 +158,12 @@ public final class Configuration {
 
 	protected static final String KEY_EX_PROTO_FILE      = "x.proto.file";
 
+
+	protected static final String KEY_EX_PERCEPTION      = "x.perception";
+
+	protected static final String KEY_EX_SIM             = "x.sim";
+
+	protected static final String KEY_EX_SIM_EPS         = "x.sim.eps";
 
 
 	protected static final String KEY_EX_ALPHA           = "x.alpha";
@@ -587,6 +595,31 @@ public final class Configuration {
 	}
 
 
+	/**
+	 * @return the perception type
+	 */
+	public Perception.Type getPerceptionType() {
+		return Perception.Type.valueOf(this.prop.getProperty(KEY_EX_PERCEPTION));
+	}
+
+
+	/**
+	 * @return the lexicon similarity type
+	 */
+	public Lexicon.Similarity getLexiconSimilarityType() {
+		return Lexicon.Similarity.valueOf(this.prop.getProperty(KEY_EX_SIM));
+	}
+
+
+	/**
+	 * @return the epsilon parameter of the lexicon similarity
+	 */
+	public double getLexiconSimilarityEpsilon() {
+		return Double.parseDouble(this.prop.getProperty(KEY_EX_SIM_EPS));
+	}
+
+
+
 	public double getExemplarSimilarityWeightAlpha() {
 		return Double.parseDouble(this.prop.getProperty(KEY_EX_ALPHA));
 	}
@@ -718,7 +751,6 @@ public final class Configuration {
 	/**
 	 * Constructor using configuration from specified file or from a given set
 	 * properties.
-	 * @param confFile
 	 * @param outDir
 	 * @param props
 	 */
@@ -770,8 +802,10 @@ public final class Configuration {
 
 	/**
 	 * Read properties from file.
-	 * @param confFile
-	 * @return
+	 * If the provided configuration file is <code>null</code>, the default
+	 * configuration will be loaded from {@link ConfigurationDefault#getDefaultConfiguration()}
+	 * @param confFile -- the configuration file
+	 * @return a {@link Properties} object
 	 */
 	private static Properties readProperties(File confFile)
 	{

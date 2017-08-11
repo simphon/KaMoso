@@ -13,7 +13,6 @@ import sfb732.kamoso.util.MyFileHelper;
 /**
  * Generate a number of configuration files from a CSV table.
  * @author Daniel Duran, Institut für Maschinelle Sprachverarbeitung, Universität Stuttgart, SFB 732 (A2)
- *
  */
 public class ConfigurationGenerator {
 
@@ -52,7 +51,7 @@ public class ConfigurationGenerator {
 		// write confs to file(s):
 		for(int i=0; i<confs.size(); i++) {
 			Configuration c = confs.get(i);
-			File cf = new File(outF, String.format("%s%s_%s.csv", c.getOutputPrefix(), c.getTag(), c.getTimestamp()));
+			File cf = new File(outF, String.format("%s.prop", c.getTag()));
 			Configuration.save(c, cf);
 		}
 
@@ -69,7 +68,13 @@ public class ConfigurationGenerator {
 		p.println("Usage:");
 		p.print(ConfigurationGenerator.class.getCanonicalName());
 		p.println(" [OPTIONS]");
-		//TODO finish
+		p.println(" required:");
+		p.printf("  %-6s [FILE] - a CSV file\n", Configuration.ARG_FILE_CONF);
+		p.printf("  %-6s [DIR]  - the output directory\n", Configuration.ARG_FILE_OUT);
+		p.println(" optional:");
+		p.printf("  %-6s        - display this help and exit\n", Configuration.ARG_HELP1);
+		p.printf("  %-6s        - display this help and exit\n", Configuration.ARG_HELP2);
+		System.exit(exitCode);
 	}
 
 
@@ -133,7 +138,14 @@ public class ConfigurationGenerator {
 					Configuration.KEY_NET_ROWS,
 					Configuration.KEY_NET_PARISHES,
 					Configuration.KEY_NET_PROB,
-					Configuration.KEY_NET_MAX_SW
+					Configuration.KEY_NET_MAX_SW,
+					Configuration.KEY_EX_PROTO_FILE,
+					Configuration.KEY_EX_PHON_DIM,
+					Configuration.KEY_EX_PERCEPTION,
+					Configuration.KEY_EX_SIM,
+					Configuration.KEY_EX_ALPHA,
+					Configuration.KEY_EX_BETA,
+					Configuration.KEY_EX_GAMMA,
 					//TODO finish...
 			};
 			for(int cx=0; cx<nConfs; cx++) {

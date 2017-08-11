@@ -3,6 +3,7 @@ package sfb732.kamoso.junit;
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -311,6 +312,91 @@ public class TestNetwork {
 			Arrays.toString(found);
 		}
 
+	}
+
+
+
+
+	@Test
+	public void testGetSpeakerIteratorByDistanceDet()
+	{
+		System.out.println("**** TestNetwork.testReadEdgelistCSV ****");
+
+		Configuration conf = Configuration.init(new File("config/is17-Pr-dis-abg.prop"), new File("output/test/"));
+
+		File edgesFile = new File("data/edges-parSW-5x10x8.csv");
+		File agentsFile = new File("data/agents400-par2.csv");
+		File prototypesFile = new File("data/prototypes2D.csv");
+
+
+		Network net = Network.readEdgelistCSV(conf,edgesFile);
+
+		Exemplar[] lex = Lexicon.readCSV(conf,prototypesFile, 2);
+		Exemplar prototypeA = lex[0];
+		Exemplar prototypeB = lex[1];
+
+		Agent[] pop = PopulationFactory.readCSV(conf, agentsFile, prototypeA, prototypeB);
+
+		net.setAgents(pop);
+
+		assertNotNull(net);
+		assertNotNull(pop);
+		assertEquals(400, net.size());
+
+		for(int i=0; i<400; i++) {
+			Agent a = net.getAgentAtNode(i);
+			assertNotNull(a);
+			assertEquals(i, a.getNodeId());
+			assertEquals(i, a.getId());
+		}
+
+		int testEpochs = 7;
+
+		for(int epoch = 0; epoch < testEpochs; epoch++)
+		{
+			Iterator<Agent> it = net.iterator();
+			assertTrue(it.hasNext());
+
+			while(it.hasNext()) {
+				Agent a = it.next();
+
+				ArrayList<Agent> speakerList = new ArrayList<Agent>();
+
+				Iterator<Agent> jt = net.getSpeakerIterator(a, Type.byDistanceDet);
+				assertTrue(jt.hasNext());
+
+				double previous = 1.0;
+				while(jt.hasNext())
+				{
+					Agent speaker = jt.next();
+					assertNotNull(speaker);
+					assertNotSame(speaker, a);
+					assertTrue(speaker.getAge()>0);
+					assertNotEquals(a.getNodeId(), speaker.getNodeId());
+
+					double closeness = net.getSocialCloseness(a, speaker);
+					assertTrue(closeness <= previous);
+					previous = closeness;
+
+					speakerList.add(speaker);
+				}
+				assertEquals(conf.getNumberOfTeachers(),  speakerList.size());
+
+				// try again and check if the order is the same:
+				jt = net.getSpeakerIterator(a, Type.byDistanceDet);
+				assertTrue(jt.hasNext());
+				int index = 0;
+				while(jt.hasNext())
+				{
+					Agent speaker = jt.next();
+					assertSame(speakerList.get(index), speaker);
+					index++;
+				}
+
+			}
+			System.out.printf("**** TestNetwork.testReadEdgelistCSV: epoch %d: OK\n", epoch);
+			net.incrementEpoch();
+		}
 	}
 
 }

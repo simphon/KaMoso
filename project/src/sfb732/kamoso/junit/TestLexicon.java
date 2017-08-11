@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -18,6 +19,7 @@ import sfb732.kamoso.conf.Configuration;
 import sfb732.kamoso.mem.Exemplar;
 import sfb732.kamoso.mem.Exemplar.Type;
 import sfb732.kamoso.mem.Lexicon;
+import sfb732.kamoso.mem.LexiconTools;
 import sfb732.kamoso.pop.Agent;
 import sfb732.kamoso.pop.Agent.Gender;
 import sfb732.kamoso.util.MyMathHelper;
@@ -289,7 +291,7 @@ public class TestLexicon {
 	public final void test_similarity()
 	{
 		double[] phonA = new double[]{-39,-39,25,83,38};
-		double[] phonB = new double[]{36,35,75,-61,59}; 
+		double[] phonB = new double[]{36,35,75,-61,59};
 
 		Exemplar protoA = new Exemplar(Type.A, 1.0, Gender.f, 0.9, phonA, 1.0);
 		Exemplar protoB = new Exemplar(Type.B, 1.0, Gender.f, 0.9, phonB, 1.0);
@@ -533,7 +535,7 @@ public class TestLexicon {
 		{
 			double[] stimPhon = stimuli.get(sx);
 			Exemplar stimulus = new Exemplar(null, 1, null, 1, stimPhon, 0);
-			Exemplar percept  = lex.getPerceptPM(stimulus, 0);
+			Exemplar percept  = lex.getPercept(stimulus, 0);
 
 			double d_s_p = Exemplar.getPhoneticDistance(stimulus, percept);
 			double d_s_A = Exemplar.getPhoneticDistance(stimulus, centroidA);
@@ -569,6 +571,113 @@ public class TestLexicon {
 		}
 		return noisy;
 	}
+
+
+
+
+
+	@Test
+	public final void compareSimilarity()
+	{
+		System.out.println("**** TestLexicon.compareSimilarity ****");
+		//String timeStamp  = new SimpleDateFormat("yyyy-MM-dd+HHmmss").format(new Date());
+
+		double[] phonA = new double[]{3.0, 3.0};
+		double[] phonB = new double[]{-3.0, -3.0};
+		Exemplar protoA = new Exemplar(Type.A, 0.0, Gender.f, 0.0, phonA, 0.0);
+		Exemplar protoB = new Exemplar(Type.B, 0.0, Gender.f, 0.0, phonB, 0.0);
+		double[] sdA = new double[]{1.0, 1.0};
+		double[] sdB = new double[]{1.5, 1.5};
+		int numA = 500;
+		int numB = 1000;
+
+		Configuration conf = Configuration.init(new File("testdata/pm.prop"), new File(Configuration.DEFAULT_OUPUT_DIR));
+
+		Lexicon lex = LexiconTools.generateNormalLexicon(conf, protoA, protoB, sdA, sdB, numA, numB);
+		assertEquals(numA+numB, lex.size());
+
+		double epsilon = 1.5;
+
+		double[] min = new double[]{-7.0, -7.0};
+		double[] max = new double[]{7.0, 7.0};
+
+		int trials = 10000;
+
+		long timeGlobal = 0;
+		long timeNeighb = 0;
+
+		ArrayList<Integer> cases = new ArrayList<>();
+		cases.add(1);
+		cases.add(2);
+		cases.add(3);
+		cases.add(4);
+
+		for(int i=0; i<trials; i++) {
+			long start;
+			long end;
+
+			double[] stim = new double[]{
+					MyMathHelper.randomDouble(min[0], max[0]),
+					MyMathHelper.randomDouble(min[1], max[1])
+			};
+
+			double distA = MyMathHelper.getEuclideanDistance(phonA, stim);
+			double distB = MyMathHelper.getEuclideanDistance(phonB, stim);
+
+			Type type = distA < distB ? Type.A : Type.B;
+
+			Exemplar stimulus = new Exemplar(type, 0, Gender.f, 0, stim, 0);
+
+			Collections.shuffle(cases);
+
+			for(int cx=0; cx<4; cx++) {
+
+				Integer c = cases.get(cx);
+
+				double sim=Double.NaN;
+				switch (c) {
+				case 1:
+					start = System.currentTimeMillis();
+					sim = lex.getSimilarity(stimulus, Type.A);
+					end = System.currentTimeMillis();
+					timeGlobal += (end-start);
+					break;
+
+				case 2:
+					start = System.currentTimeMillis();
+					sim = lex.getSimilarityN(stimulus, Type.A, epsilon);
+					end = System.currentTimeMillis();
+					timeNeighb += (end-start);
+					break;
+
+				case 3:
+					start = System.currentTimeMillis();
+					sim = lex.getSimilarity(stimulus, Type.B);
+					end = System.currentTimeMillis();
+					timeGlobal += (end-start);
+					break;
+
+				case 4:
+					start = System.currentTimeMillis();
+					sim = lex.getSimilarityN(stimulus, Type.B, epsilon);
+					end = System.currentTimeMillis();
+					timeNeighb += (end-start);
+					break;
+				}
+
+				assertTrue(sim >= 0.0);
+				assertTrue(sim <= 1.0);
+			}
+
+			lex.addExemplar(stimulus);
+		}
+
+		System.out.printf(Configuration.DEFAULT_LOCALE,
+				"Trials= %d; global= %,d ms; neighbor= %,d ms\n",
+				trials, timeGlobal, timeNeighb);
+
+	}
+
 
 
 

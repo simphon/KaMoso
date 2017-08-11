@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -167,6 +168,7 @@ public class Network implements Iterable<Agent> {
 
 	private long modCount = Long.MIN_VALUE;
 
+	private int[][] closenessSorted;
 
 
 	/**
@@ -187,7 +189,7 @@ public class Network implements Iterable<Agent> {
 
 		this.numTeachers = _nt;
 
-		// pre-compute closeness map
+		// pre-compute closeness map (e.g. for distance based interaction)
 		this.closenessMap = new double[n][n];
 
 		double md = this.edges.getMaximumDistance();
@@ -200,6 +202,7 @@ public class Network implements Iterable<Agent> {
 				this.closenessMap[i][j] = c;
 			}
 		}
+		this.initClosenessSorted();
 
 		// initialize status index
 		this.statusArray = new double[this.nodes.length];
@@ -433,6 +436,10 @@ public class Network implements Iterable<Agent> {
 			iterator = new NetworkIteratorNonLinear(this.getIndicesByDistance(listenerNodeID));
 			break;
 
+		case byDistanceDet:
+			iterator = new NetworkIteratorNonLinear(this.getIndicesByDistanceDet(listenerNodeID));
+			break;
+
 		case byStatus:
 			iterator = new NetworkIteratorNonLinear(this.getIndicesBySatus(listenerNodeID));
 			break;
@@ -449,10 +456,16 @@ public class Network implements Iterable<Agent> {
 
 
 	/**
+	 * Distance-based interaction.
+	 * <p>
+	 * Returns a subset from all speakers based on the distance from the
+	 * specified listener. The number of speakers is determined by the current
+	 * configuration's parameter <i>number of teachers</i>. Nodes are selected
+	 * at random and added to the set with a probability corresponding to the
+	 * closeness between that node and the listener.
 	 * 
 	 * @param listenerNode
-	 * @param numTeachers
-	 * @return
+	 * @return an array of node indices
 	 */
 	private int[] getIndicesByDistance(int listenerNode)
 	{
@@ -478,6 +491,107 @@ public class Network implements Iterable<Agent> {
 	}
 
 
+
+	/**
+	 * Distance-based interaction with deterministic order of teachers.
+	 * <p>
+	 * Returns a subset from all speakers based on the distance from the
+	 * specified listener. The number of speakers is determined by the current
+	 * configuration's parameter <i>number of teachers</i>. Nodes are returned
+	 * in a pre-computed deterministic order according to the closeness between
+	 * the respective node and the listener. Node IDs which correspond to a
+	 * new-born agent or point to <code>null</code> are skipped.
+	 * 
+	 * @param listenerNode
+	 * @return an array of node indices
+	 */
+	private int[] getIndicesByDistanceDet(int listenerNode)
+	{
+		int[] teachers = new int[numTeachers];
+		int i = 0;
+		int n = this.closenessSorted[listenerNode].length;
+		while(i < numTeachers)
+		{
+			for(int j=0; j<n; j++) {
+				int nx = this.closenessSorted[listenerNode][j];
+				if(null==this.nodes[nx] || this.nodes[nx].agent.getAge()==0){
+					continue;
+				}
+				teachers[i] = nx;
+				i++;
+				if(i==numTeachers) {
+					break;
+				}
+			}
+		}
+		return teachers;
+	}
+
+
+	/**
+	 * Initialize sorted table of indices for deterministic distance-based
+	 * interaction.
+	 */
+	private void initClosenessSorted()
+	{
+		LOG.debug("sorting closeness table...");
+		int n = this.nodes.length;
+		this.closenessSorted = new int[n][];
+
+		ArrayList<Integer> ids = new ArrayList<Integer>(n);
+		ArrayList<Double> cls = new ArrayList<Double>(n);
+
+		for(int i=0; i<n; i++) {
+			ids.clear();
+			cls.clear();
+			for(int j=0; j<n; j++) {
+				if(i==j) {
+					continue;
+				}
+				Integer id = Integer.valueOf(j);
+				Double cx = Double.valueOf(this.closenessMap[i][j]);
+				int sz = ids.size();
+				boolean add = true;
+				if(sz>0) {
+					for(int k=0; k<sz; k++) {
+						if(cx > cls.get(k)){
+							ids.add(k, id);
+							cls.add(k, cx);
+							add=false;
+							break;
+						}
+					}
+				}
+				if(add) {
+					ids.add(id);
+					cls.add(cx);
+				}
+			}
+			int sz = ids.size();
+			int[] indices = new int[sz];
+			for(int j=0; j<sz; j++) {
+				indices[j] = ids.get(j).intValue();
+			}
+			this.closenessSorted[i] = indices;
+		}
+		LOG.debug("Closeness table sorted for all nodes.");
+	}
+
+
+	//	/**
+	//	 * Whenever a
+	//	 */
+	//	private void updateStatusIndex() {
+	//		if(this.modCount != this.statusOrderCount){
+	//			this.statusArray = new double[this.nodes.length];
+	//			for(int i=0; i<this.nodes.length; i++) {
+	//				if(null!=this.nodes[i] && this.nodes[i].agent.getAge()>0) {
+	//					this.statusArray[i] = this.nodes[i].agent.getStatus();
+	//				}
+	//			}
+	//			this.statusOrderCount = this.modCount;
+	//		}
+	//	}
 
 	/**
 	 * 
@@ -519,15 +633,21 @@ public class Network implements Iterable<Agent> {
 
 
 	/**
-	 * 
+	 * Regular interaction with a limited number of teachers.
+	 * <p>
+	 * Select subset of speakers. The number of speakers is determined by the
+	 * current configuration's parameter <i>number of teachers</i>. The order of
+	 * speakers is randomized if the number of teachers is smaller than the
+	 * number of nodes in the network. Else, speakers are recycled until enough
+	 * are found, starting at a random node.
 	 * @param listenerNode
-	 * @return
+	 * @return an array of node indices
 	 */
 	private int[] getIndicesOfSpeakers(int listenerNode)
 	{
 		int[] speakers = new int[numTeachers];
 		if(this.numTeachers>=this.nodes.length){
-
+			// we need more speakers than we have different nodes in the network
 			// select random start point
 			int i = this.conf.randomInt(this.nodes.length);
 			// loop through nodes until enough teachers are found
@@ -544,14 +664,12 @@ public class Network implements Iterable<Agent> {
 				}
 			}
 
-
-
 		} else {
 			boolean[] found = new boolean[this.nodes.length];
 			int i = 0;
 			while(i < numTeachers) {
 				int j = this.conf.randomInt(this.nodes.length);
-				if( j!=listenerNode && 
+				if( j!=listenerNode &&
 						this.nodes[j].agent.getAge() > 0 &&
 						!found[j]  ) {
 					speakers[i] = j;

@@ -86,6 +86,10 @@ public class ConfigurationDefault {
 		p.setProperty(Configuration.KEY_NET_FILE, "");// no default
 		p.setProperty(Configuration.KEY_NET_MAX_SW, "3");
 
+		p.setProperty(Configuration.KEY_EX_PERCEPTION, "magnet");
+		p.setProperty(Configuration.KEY_EX_SIM, "global");
+		p.setProperty(Configuration.KEY_EX_SIM_EPS, "0.0");//not relevant for global similarity
+
 		p.setProperty(Configuration.KEY_EX_ALPHA, "1.0");
 		p.setProperty(Configuration.KEY_EX_BETA, "1.0");
 		p.setProperty(Configuration.KEY_EX_GAMMA, "1.0");

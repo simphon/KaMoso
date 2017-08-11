@@ -187,10 +187,10 @@ public class MyMathHelper {
 
 	/**
 	 * Get weighted mean for two vectors.
-	 * @param a
-	 * @param b
-	 * @param wa
-	 * @param wb
+	 * @param a -- vector a
+	 * @param b -- vector b
+	 * @param wa -- weight a
+	 * @param wb -- weight b
 	 * @return
 	 */
 	public static double[] getWeightedMean(double[] a, double[] b, double wa, double wb)

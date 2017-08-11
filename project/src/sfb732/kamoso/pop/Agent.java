@@ -153,7 +153,7 @@ public class Agent {
 	 */
 	public void listen(Exemplar stimulus, double socialCloseness)
 	{
-		Exemplar percept = this.lexicon.getPerceptPM(stimulus, socialCloseness);
+		Exemplar percept = this.lexicon.getPercept(stimulus, socialCloseness);
 		if(percept.getType()==Type.undefined){
 			this.discardedPercepts++;
 		} else {

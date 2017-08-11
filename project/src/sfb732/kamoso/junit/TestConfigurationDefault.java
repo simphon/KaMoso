@@ -62,7 +62,6 @@ public class TestConfigurationDefault {
 		//XXX Attention: this will fail when the behavior of
 		// sfb732.kamoso.conf.ConfigurationDefault.getDefaultConfiguration()
 		// is changed!
-		assertNotNull(p.getProperty("random.seed"));
 		assertNotNull(p.getProperty("net.sw.maxtry"));
 		assertNotNull(p.getProperty("x.delta.th"));
 		assertNotNull(p.getProperty("x.th.activation"));

@@ -337,6 +337,7 @@ public class NetworkFactory {
 		{
 			int r = getGridRowForID(i, ncol);
 			int c = getGridColumnForID(i, ncol);
+
 			int j;
 
 			// RIGHT

@@ -67,6 +67,13 @@ public class ParochialSimulation {
 				dumpAgentStats(conf, outDir, pfx, epoch, pop, true);
 			}
 
+			boolean dumpLastA = conf.getOutputAgentDumpLast();
+			boolean dumpLastL = conf.getOutputLexiconDumpLast();
+			int lastDump = Integer.MAX_VALUE;
+			if(dumpLastA || dumpLastL){
+				lastDump = maxEpochs - 1;
+			}
+
 			for(; epoch < maxEpochs; epoch++, dumpA--, dumpL-- )
 			{
 				LOG.info(String.format("Start epoch %d ...", epoch));
@@ -83,7 +90,7 @@ public class ParochialSimulation {
 							dumpAgentStats(conf, outDir, pfx, epoch, pop, true);
 						}
 					}
-					if(wait==maxWait){
+					else if(wait==maxWait){
 						LOG.info(String.format("Aborting epoch %d: one variant disappeared", epoch));
 						break;
 					}
@@ -104,15 +111,16 @@ public class ParochialSimulation {
 					dumpL = dumpLInterval;
 				}
 
+				if(epoch==lastDump) {
+					if(dumpLastA) {
+						dumpAgentStats(conf, outDir, pfx, epoch, pop, dumpLastL);
+					} else if(dumpLastL) {
+						dumpAgentStats(conf, outDir, pfx, epoch, pop, true);
+					}
+				}
+
 				// increment ages
 				pop.incrementEpoch();
-			}
-
-			if(conf.getOutputAgentDumpLast()) {
-				//TODO dump last before incrementing epoch!
-				dumpAgentStats(conf, outDir, pfx, epoch, pop, conf.getOutputLexiconDumpLast());
-			} else if(conf.getOutputLexiconDumpLast()) {
-				dumpAgentStats(conf, outDir, pfx, epoch, pop, true);
 			}
 
 		} catch (IOException e) {

@@ -45,7 +45,10 @@ public class Interaction {
 		byStatusAndDistance,
 
 		/** interaction based on distance */
-		byDistance
+		byDistance,
+
+		/** interaction based on distance - deterministic */
+		byDistanceDet,
 	}
 
 
