@@ -15,4 +15,5 @@ Contact: [http://www.ims.uni-stuttgart.de/institut/mitarbeiter/durandl/]
 
 ### 2017-04-19
 * Documentation needs to be completed. The Java source code contains Javadoc annotations.
-* JUnit tests need to be completed (some tests will)
+* JUnit tests need to be completed (some tests will currently fail)
+
