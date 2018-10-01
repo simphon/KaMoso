@@ -2,7 +2,7 @@
 
 The KaMoso multi-agent simulation framework is work in progress. Feel free to send any comments or suggestions to Daniel Duran.
 
-Contact: [http://www.ims.uni-stuttgart.de/institut/mitarbeiter/durandl/] -- Daniel.Duran AT ims.uni-stuttgart.de
+Contact: [http://paul.igl.uni-freiburg.de/duran/en/] -- Daniel.Duran AT germanistik.uni-freiburg.de
 
 ## Dependencies
 In order to run KaMoso you need to install the following Java libraries:
